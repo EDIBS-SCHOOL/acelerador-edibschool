@@ -4,11 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useAuth } from '../hooks/useAuth'
 import { getProjects, createProject, deleteProject, updateProject, type Project } from '../services/projectsService'
-import { PlusIcon, Bars3Icon, PlayCircleIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, PlayCircleIcon, ArrowLeftIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import { useTheme } from '../context/ThemeContext'
-import { useIsMobile } from '../hooks/useIsMobile'
 
-import Sidebar        from '../components/Dashboard/Sidebar'
 import DashboardHeader from '../components/Dashboard/Header'
 import StatsCards     from '../components/Dashboard/StatsCards'
 import ProjectGrid    from '../components/Dashboard/ProjectGrid'
@@ -298,13 +296,14 @@ export default function Dashboard() {
   const [projects, setProjects]             = useState<Project[]>([])
   const [loading, setLoading]               = useState(true)
   const [showModal, setShowModal]           = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [mobileNavOpen, setMobileNavOpen]   = useState(false)
-  const isMobile = useIsMobile()
   const [scrollY, setScrollY]               = useState(0)
   const [headerSolid, setHeaderSolid]       = useState(false)
-  // Vista central: 'inicio' (video) por defecto | 'acelerador' (proyectos)
-  const [view, setView]                     = useState<'inicio' | 'acelerador'>('inicio')
+  // El Acelerador se abre DENTRO del campus, que ya trae su propia navegación
+  // arriba. Por eso se entra directo a los proyectos: el paso por "Inicio" era un
+  // desvío, y el menú lateral del ecosistema duplicaba lo que el campus ya ofrece.
+  // 'inicio' (el vídeo de cómo funciona) sigue existiendo, accesible desde la
+  // cabecera.
+  const [view, setView]                     = useState<'inicio' | 'acelerador'>('acelerador')
   const [playing, setPlaying]               = useState(false)
   const [posterOk, setPosterOk]             = useState(true)
   const playVideo = () => setPlaying(true)
@@ -385,19 +384,8 @@ export default function Dashboard() {
       {/* ── Scroll progress bar ── */}
       <div className="fixed top-0 left-0 h-[2px] pointer-events-none" style={{ zIndex: 100, width: `${sp * 100}%`, background: `linear-gradient(90deg,#8357F6,${col},#AF8AE6)`, boxShadow: `0 0 10px ${col}`, transition: 'width .1s ease-out' }} />
 
-      {/* ── Sidebar ── */}
-      <Sidebar
-        mode="dashboard"
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(c => !c)}
-        mobileOpen={mobileNavOpen}
-        onMobileClose={() => setMobileNavOpen(false)}
-        onAcelerador={() => setView('acelerador')}
-        aceleradorActive={view === 'acelerador'}
-        onHome={() => setView('inicio')}
-        user={user}
-        onLogout={async () => { await logout(); navigate('/login') }}
-      />
+      {/* Sin menú lateral: lo aporta el campus, que es quien embebe esta pantalla.
+          El componente Sidebar se mantiene porque Tools.tsx lo sigue usando. */}
 
       {/* ── Right panel ── */}
       <div ref={mainRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', position: 'relative', zIndex: 10, minWidth: 0 }}>
@@ -408,11 +396,6 @@ export default function Dashboard() {
           isDark={isDark}
           onToggleTheme={toggleTheme}
           scrolled={headerSolid}
-          left={isMobile ? (
-            <button onClick={() => setMobileNavOpen(true)} className="btn-icon" style={{ width: 36, height: 36, flexShrink: 0 }} title="Menú" aria-label="Abrir menú">
-              <Bars3Icon style={{ width: 20, height: 20 }} />
-            </button>
-          ) : undefined}
           right={
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ position: 'relative' }}>
@@ -424,6 +407,28 @@ export default function Dashboard() {
               <span className="text-sm font-medium hidden md:block" style={{ color: 'var(--text-2)' }}>
                 {user?.user_metadata?.name?.split(' ')[0] || user?.email?.split('@')[0]}
               </span>
+              {/* Estas dos vivían en el menú lateral y eran su única puerta: el vídeo
+                  de cómo funciona y la salida. Se conservan aquí. */}
+              <button
+                onClick={() => setView(v => (v === 'inicio' ? 'acelerador' : 'inicio'))}
+                className="btn-icon"
+                style={{ width: 36, height: 36, flexShrink: 0 }}
+                title={view === 'inicio' ? 'Volver a mis proyectos' : 'Cómo funciona'}
+                aria-label={view === 'inicio' ? 'Volver a mis proyectos' : 'Cómo funciona'}
+              >
+                {view === 'inicio'
+                  ? <ArrowLeftIcon style={{ width: 18, height: 18 }} />
+                  : <PlayCircleIcon style={{ width: 20, height: 20 }} />}
+              </button>
+              <button
+                onClick={async () => { await logout(); navigate('/login') }}
+                className="btn-icon"
+                style={{ width: 36, height: 36, flexShrink: 0 }}
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+              >
+                <ArrowRightOnRectangleIcon style={{ width: 18, height: 18 }} />
+              </button>
             </div>
           }
         />
