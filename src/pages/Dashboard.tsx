@@ -286,6 +286,43 @@ function RenameModal({ proyecto, onClose, onSave }: { proyecto: Project | null; 
   )
 }
 
+/** Confirmación propia para eliminar. Antes era el confirm() nativo, que dentro
+ *  del campus (iframe) o con los diálogos bloqueados devuelve false sin mostrarse,
+ *  y el botón parecía no hacer nada. */
+function DeleteModal({ proyecto, onClose, onConfirm }: { proyecto: Project | null; onClose: () => void; onConfirm: () => Promise<void> }) {
+  const [loading, setLoading] = useState(false)
+  const handle = async () => {
+    setLoading(true)
+    try { await onConfirm() } finally { setLoading(false) }
+  }
+  return (
+    <AnimatePresence>
+      {proyecto && (
+        <>
+          <motion.div key="bg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={loading ? undefined : onClose} className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(8px)' }} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div key="modal" role="alertdialog" aria-modal="true" aria-labelledby="eliminar-titulo" initial={{ opacity: 0, scale: .88, filter: 'blur(15px)' }} animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} exit={{ opacity: 0, scale: .88 }} transition={{ duration: .35, ease: [.34, 1.56, .64, 1] }} onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-3xl overflow-hidden" style={{ background: 'var(--surface-s)', border: '1px solid rgba(239,68,68,.3)', boxShadow: '0 40px 100px rgba(0,0,0,.7)' }}>
+              <div className="h-px" style={{ background: 'linear-gradient(90deg,transparent,#EF4444,transparent)' }} />
+              <div className="p-6">
+                <h2 id="eliminar-titulo" className="text-lg font-black mb-3" style={{ color: 'var(--text)' }}>¿Eliminar este proyecto?</h2>
+                <p className="text-sm mb-6" style={{ color: 'var(--text-2)' }}>
+                  Vas a borrar <strong style={{ color: 'var(--text)' }}>«{proyecto.name}»</strong> con sus respuestas, su análisis y sus herramientas. No se puede deshacer.
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={onClose} disabled={loading} autoFocus className="btn-secondary flex-1 py-3 rounded-xl text-sm font-medium disabled:opacity-50">Cancelar</button>
+                  <button onClick={handle} disabled={loading} className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50" style={{ background: '#DC2626' }}>
+                    {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto block" /> : 'ELIMINAR'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // --- Main Dashboard ---------------------------------------------------------
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -355,10 +392,17 @@ export default function Dashboard() {
     } catch (e: unknown) { toast.error(`Error: ${e instanceof Error ? e.message : 'desconocido'}`) }
   }
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar "${name}"?`)) return
-    try { await deleteProject(id); setProjects(p => p.filter(pr => pr.id !== id)); toast.success('Eliminado') }
-    catch (e: unknown) { toast.error(`Error: ${e instanceof Error ? e.message : 'desconocido'}`) }
+  const [eliminando, setEliminando] = useState<Project | null>(null)
+
+  const handleDelete = async () => {
+    if (!eliminando) return
+    const id = eliminando.id
+    try {
+      await deleteProject(id)
+      setProjects(p => p.filter(pr => pr.id !== id))
+      setEliminando(null)
+      toast.success('Eliminado')
+    } catch (e: unknown) { toast.error(`Error: ${e instanceof Error ? e.message : 'desconocido'}`) }
   }
 
   const maxScroll = (mainRef.current?.scrollHeight ?? 0) - window.innerHeight
@@ -526,7 +570,7 @@ export default function Dashboard() {
                       else navigate(`/proyecto/${project.id}/tools`)
                     }}
                     onRename={() => setRenombrando(project)}
-                    onDelete={() => handleDelete(project.id, project.name)}
+                    onDelete={() => setEliminando(project)}
                   />
                 )}
               />
@@ -538,6 +582,7 @@ export default function Dashboard() {
       {/* Modal */}
       <NewProjectModal open={showModal} onClose={() => setShowModal(false)} onCreate={handleCreate} />
       <RenameModal proyecto={renombrando} onClose={() => setRenombrando(null)} onSave={handleRename} />
+      <DeleteModal proyecto={eliminando} onClose={() => setEliminando(null)} onConfirm={handleDelete} />
     </div>
   )
 }

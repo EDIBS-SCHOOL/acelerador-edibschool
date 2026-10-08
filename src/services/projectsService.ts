@@ -60,13 +60,17 @@ export async function deleteProject(id: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
 
-  const { error } = await supabase
+  // .select('id') devuelve las filas borradas: si la RLS (o lo que sea) no deja
+  // borrar, Supabase responde OK con 0 filas y antes se daba por eliminado.
+  const { data, error } = await supabase
     .from('projects')
     .delete()
     .eq('id', id)
     .eq('user_id', user.id)
+    .select('id')
 
   if (error) throw new Error(error.message)
+  if (!data || data.length === 0) throw new Error('No se pudo eliminar el proyecto. Recarga la página e inténtalo de nuevo.')
 }
 
 export async function updateProject(id: string, updates: Partial<Project>): Promise<void> {
