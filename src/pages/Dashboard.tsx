@@ -12,6 +12,7 @@ import StatsCards     from '../components/Dashboard/StatsCards'
 import ProjectGrid    from '../components/Dashboard/ProjectGrid'
 import EmptyState     from '../components/Dashboard/EmptyState'
 import ProjectCard    from '../components/Dashboard/ProjectCard'
+import EcosystemLinks from '../components/Dashboard/EcosystemLinks'
 
 // Video de inicio: archivo local en /public. Portada = imagen de /public.
 // (Sin DRM: un archivo servido desde /public es público/descargable.)
@@ -576,6 +577,17 @@ export default function Dashboard() {
               />
             </>
           )}
+
+          {/* Seguimiento y Tutorias 1:1 vivian SOLO en el menu lateral. Al quitarlo se
+              quedaron sin ninguna puerta en toda la app y los alumnos lo reportaron.
+              Vuelven aqui, en la propia pagina y en las dos vistas, sin reponer el menu. */}
+          <section style={{ marginTop: 'var(--sp-2xl)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: col }}>Tus otras plataformas</span>
+              <div style={{ height: 1, flex: 1, background: 'var(--border)' }} />
+            </div>
+            <EcosystemLinks variant="cards" />
+          </section>
         </main>
       </div>
 
